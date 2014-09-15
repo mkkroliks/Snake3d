@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js canvas - camera - orthographic</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #f0f0f0;
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+
+		<script src="three.js-master/build/three.min.js"></script>
+
+		<script src="three.js-master/loaders/MTLLoader.js"></script>
+		<script src="three.js-master/loaders/OBJMTLLoader.js"></script>
+
+		<script src="js/libs/stats.min.js"></script>
+
+		
+		
+
+
+		<script>
+
+			var container, stats;
+			var camera, scene, renderer;
+			var setTime;
+			var fruits = [];
+			var time = 100;
+			var speedUp;
+			var grass;
+			var proportion = 1.9;
+			var importedModel;
+			var apple;
+
+			var board = {
+				size: 500,
+				step: 50
+			};
+
+			var planeArray = new Array();			//NOWE
+
+			var CubeGeometry, CubeMaterial;
+
+			var direction = new String();
+			var snake = [];
+
+			init();
+			animate();
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				  camera = new THREE.OrthographicCamera(
+				    window.innerWidth / -proportion,   // Left
+				    window.innerWidth / proportion,    // Right
+				    window.innerHeight / proportion,   // Top
+				    window.innerHeight / -proportion,  // Bottom
+				    -500,            // Near clipping plane
+				    1000 );           // Far clipping plane
+				camera.position.x = 150;
+				camera.position.y = 100;
+				camera.position.z = 200;
+
+				scene = new THREE.Scene();
+
+				// Board
+
+				for ( var i = - board.size; i <= board.size; i += board.step ) {
+
+					for ( var j = - board.size; j <= board.size; j += board.step ) {
+
+						plane = new THREE.Mesh(new THREE.PlaneGeometry(50,50), new THREE.MeshPhongMaterial( { map: THREE.ImageUtils.loadTexture('desert.jpg') } ));
+						plane.rotation.x = -Math.PI/2; //-90 degrees around the xaxis 
+						plane.position.z = i;
+						plane.position.x = j;
+		      			scene.add(plane);
+
+		      			planeArray.push(plane);				//dodajemy każdy element planszy do tablicy by później na każdym elemencie robic castShadow
+
+					}
+
+				}
+
+
+				CubeGeometry = new THREE.BoxGeometry( 50, 50, 50 ); //tworzymy nowÄ geometrie ktÃ³rÄ jest pudÅo i ustawiamy jej wielkoÅÄ
+				CubeMaterial = new THREE.MeshLambertMaterial( { map: THREE.ImageUtils.loadTexture('lime-snake-texture-seamless-3184351.jpg') } );
+
+				cube = new THREE.Mesh(CubeGeometry, CubeMaterial);
+			    cube.position.y = ( cube.scale.y * 50 ) / 2;
+			    cube.position.x = board.size;
+				cube.position.z = board.size;
+			    scene.add(cube);
+
+
+				
+				direction = "left";									//wyznaczamy poczatkowy kierunek snake'a
+
+				snake.unshift(cube);								//dodajemy cuba na początek tablicy
+
+				scene.add( cube );
+
+				
+				// Lights
+				// add subtle ambient lighting - affect all object in scene
+			    scene.add( new THREE.AmbientLight( 0x212223) );
+			      
+			      // directional lighting
+			    var directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+			    directionalLight.position.x = -100;
+			    directionalLight.position.y = 250;
+			    directionalLight.position.z = 100;
+			    scene.add(directionalLight);
+
+			    var directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.5);
+				directionalLight1.position.x = 500;
+			    directionalLight1.position.y = 1250;
+			    directionalLight1.position.z = -500;
+			    scene.add(directionalLight1);
+
+				var companion = new THREE.OBJMTLLoader();
+	            companion.load( 'models/apple/appleFinal1.obj', 'models/apple/appleFinal1.mtl', function ( object ) {
+	            	apple = object;
+	                apple.position.y = 15;	              
+	                // object.scale.set( 1.5,1.5,1.5 );
+	                apple.scale.set( 1.5,1.5,1.5 );
+	                apple.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
+
+	                addFruit();	//
+
+	                setTime = setInterval(move, time);
+
+	                // scene.add( object );
+	            });
+
+				// renderer = new THREE.WebGLRenderer({ antialias: true});					//TODO
+				renderer = new THREE.WebGLRenderer();
+				renderer.setClearColor( 0xf0f0f0 );										//nasz background
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				container.appendChild( renderer.domElement );
+
+				stats = new Stats();							//STATYSTYKI WYPIEPRZYĆ
+				stats.domElement.style.position = 'absolute';
+				stats.domElement.style.top = '0px';
+				container.appendChild( stats.domElement );
+
+				camera.lookAt( scene.position );
+
+				renderer.shadowMapEnabled = true;
+			    renderer.shadowMapSoft = false;
+
+			    renderer.shadowCameraNear = 3;
+			    renderer.shadowCameraFar = camera.far;
+			    renderer.shadowCameraFov = 50;
+
+			    renderer.shadowMapBias = 0.0039;
+			    renderer.shadowMapDarkness = 0.5;
+			    renderer.shadowMapWidth = 1024;
+			    renderer.shadowMapHeight = 1024;
+
+
+			    directionalLight.castShadow = true;
+			    directionalLight1.castShadow = true;
+			    cube.castShadow = true;
+			    // importedModel.castShadow = true;
+
+
+			    for (var i = planeArray.length - 1; i >= 0; i--) {
+			   		planeArray[i].receiveShadow = true;
+			    };
+
+			    directionalLight.target.position.set(50, 15, -50);
+
+
+				renderer.render( scene, camera );
+
+				window.addEventListener( 'resize', onWindowResize, false ); //przy zmienianiu okna ma wywołać funckje onWindowResize
+
+				window.addEventListener( 'keydown', changeDir, false);
+
+				document.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
+
+			}
+
+			var eatenFruits = 0;
+
+			function addFruit() {
+				do {
+					var fruit = apple;
+					fruit.position.x = Math.floor(Math.random()*10 + 1) * 50 * (Math.random() >= 0.5 ? 1 : -1);
+					fruit.position.z = Math.floor(Math.random()*10 + 1) * 50 * (Math.random() >= 0.5 ? 1 : -1);
+				} while(isCollission(fruit))
+				
+				fruits.push(fruit);	//dodajemy do tablicy fruits
+				// object.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
+	            scene.add( fruit );
+			}
+
+			function isTailEaten(posX, posZ) {
+
+				for (var i = snake.length - 2; i >= 0; i--) { //poniewaz ogon zmini pozycje w momencie gdy bedziemy mieli go przed soba przez co  nie zostanie
+					// console.log(snake[i].position.x, posX, snake[i].position.y, posZ);
+					if(snake[i].position.x == posX && snake[i].position.z == posZ) 
+						return true;
+				};
+				return false;
+			}
+
+			function isCollission(fruit) {
+				for (var i = snake.length - 1; i >= 0; i--) {													
+					if(snake[i].position.x == fruit.position.x && snake[i].position.z == fruit.position.z) 
+						return true;
+				};
+				return false;
+			}
+
+			function move(){
+
+				var newPosX = snake[0].position.x,
+					newPosZ = snake[0].position.z;
+
+				switch(direction) {
+					case "left":
+						 newPosX = snake[0].position.x - 50;
+						break;
+					case "up":
+						 newPosZ = snake[0].position.z - 50;
+						break;
+					case "right":
+						 newPosX = snake[0].position.x + 50;
+						break;
+					case "down":
+						 newPosZ = snake[0].position.z + 50;
+				}
+
+				checkCollission(newPosX, newPosZ);
+
+				
+				if(speedUp) {
+					clearInterval(setTime);
+					setTime = setInterval(move, time <= 100 ? 100 : time-=50);
+				}
+
+			}
+
+			function onDocumentMouseWheel( event ) {
+				// WebKit
+
+				if ( event.wheelDeltaY ) {
+
+				proportion += event.wheelDeltaY * 0.0025;
+
+				if(proportion > 100) {
+					proportion = 100;
+				} else if(proportion < 1) {
+					proportion = 1;
+				}
+
+            	camera.left = window.innerWidth / -proportion;   // Left
+				camera.right = window.innerWidth / proportion;    // Right
+				camera.top = window.innerHeight / proportion;   // Top
+				camera.bottom = window.innerHeight / -proportion;
+
+				// Opera / Explorer 9
+
+				} else if ( event.wheelDelta ) {
+
+					camera.fov -= event.wheelDelta * 0.05;
+
+				// Firefox
+
+				} else if ( event.detail ) {
+
+					camera.fov -= event.detail * 0.05;
+
+				}
+
+					camera.updateProjectionMatrix();
+
+				}
+
+			function checkCollission(posX, posZ) {
+
+				var eaten = false;
+				speedUp = false;
+
+				if(posX > board.size || posZ < -board.size || posX < -board.size || posZ > board.size ) { //Sprawdzanie czy nie wyjechał za koniec planszy
+					clearInterval(setTime);
+					console.log(snake[0].position.x, snake[0].position.z);
+				} else if (snake.length > 1 && isTailEaten(posX, posZ)) {													  //sprawdzenie czy nie zjadl ogona
+					clearInterval(setTime);
+				} else {																				  //sprawdzenie czy nie zjadl owocu
+					for (var i = fruits.length - 1; i >= 0; i--) {
+						if(fruits[i].position.x === posX && fruits[i].position.z === posZ) {
+							
+							eaten = true;
+							eatenFruits += 1;
+							if(eatenFruits % 2 === 0) { 
+								speedUp = true;
+							}
+
+							scene.remove(fruits[i]);
+
+							fruits.splice(fruits.indexOf(fruits[i]), 1); //usuwamy zjedzony owoc z tablicy
+							
+							var cube = new THREE.Mesh ( CubeGeometry, CubeMaterial );
+							cube.position.x = snake[snake.length-1].position.x;
+							cube.position.z = snake[snake.length-1].position.z;
+							cube.position.y = ( cube.scale.y * 50 ) / 2;
+
+							scene.add(cube);
+							snake.push(cube);
+
+							cube.castShadow = true;
+
+							addFruit();
+
+							break;
+						}
+					};
+
+					for (var i = snake.length - 1; i >= 0; i--) {
+						if(i===0) {
+							snake[0].position.x = posX;
+							snake[0].position.z = posZ;
+						} else {
+							if(eaten) {
+								eaten = false;
+							} else {
+								snake[i].position.x = snake[i-1].position.x;
+								snake[i].position.z = snake[i-1].position.z;
+							}
+							
+						}
+						
+					};
+
+					
+				}
+
+
+			}
+
+			function changeDir (e) {
+				switch(e.keyCode) {
+					case 37:
+						if(direction != "right")
+							direction = "left";
+						break;
+					case 38:
+						if(direction != "down")
+							direction = "up";
+						break;
+					case 39:
+						if(direction != "left")
+							direction = "right";
+						break;
+					case 40:
+						if(direction != "up")
+							direction = "down";
+				}
+			}
+
+
+
+			function onWindowResize() {
+
+				camera.left = window.innerWidth / - 2;
+				camera.right = window.innerWidth / 2;
+				camera.top = window.innerHeight / 2;
+				camera.bottom = window.innerHeight / - 2;
+
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				render();
+				stats.update();
+
+			}
+
+			function changePosition () {
+				for (var i = Things.length - 1; i >= 0; i--) {
+					Things[i]
+				};
+			}
+
+			function render() {
+
+
+
+				// var timer = 0.9;//Date.now() * 0.0001;
+
+				// camera.position.x = 150;
+				// camera.position.z = 150;
+				// camera.lookAt( scene.position );
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+	</body>
+</html>
+
+

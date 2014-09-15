@@ -1,0 +1,22 @@
+# Blender MTL File: 'appleFinal1.blend'
+# Material Count: 2
+
+newmtl apple-body
+Ns 739.215686
+Ka 0.000000 0.000000 0.000000
+Kd 0.754848 0.754848 0.754848
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd apple_texture.jpg
+
+newmtl apple-leaf
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd apple-leaf.png
