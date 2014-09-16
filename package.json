@@ -1,0 +1,13 @@
+{
+  "name": "Snake3d",
+  "description": "Snake3d is a game created using three.js",
+  "version": "0.0.1",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mkkroliks/Snake3d.git"
+  },
+  "dependencies": {
+    "express": "4.9.0"
+  }
+}

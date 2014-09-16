@@ -15,16 +15,12 @@
 	</head>
 	<body>
 
-		<script src="three.js-master/build/three.min.js"></script>
+		<script src="/three.js-master/build/three.min.js"></script>
 
-		<script src="three.js-master/loaders/MTLLoader.js"></script>
-		<script src="three.js-master/loaders/OBJMTLLoader.js"></script>
+		<script src="/three.js-master/loaders/MTLLoader.js"></script>
+		<script src="/three.js-master/loaders/OBJMTLLoader.js"></script>
 
-		<script src="js/libs/stats.min.js"></script>
-
-		
-		
-
+		<script src="/js/libs/stats.min.js"></script>
 
 		<script>
 
@@ -130,7 +126,6 @@
 	            companion.load( 'models/apple/appleFinal1.obj', 'models/apple/appleFinal1.mtl', function ( object ) {
 	            	apple = object;
 	                apple.position.y = 15;	              
-	                // object.scale.set( 1.5,1.5,1.5 );
 	                apple.scale.set( 1.5,1.5,1.5 );
 	                apple.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
 
@@ -138,7 +133,6 @@
 
 	                setTime = setInterval(move, time);
 
-	                // scene.add( object );
 	            });
 
 				// renderer = new THREE.WebGLRenderer({ antialias: true});					//TODO
@@ -280,7 +274,18 @@
 
 				} else if ( event.detail ) {
 
-					camera.fov -= event.detail * 0.05;
+					proportion += event.wheelDeltaY * 0.0025;
+
+				if(proportion > 100) {
+					proportion = 100;
+				} else if(proportion < 1) {
+					proportion = 1;
+				}
+
+            	camera.left = window.innerWidth / -proportion;   // Left
+				camera.right = window.innerWidth / proportion;    // Right
+				camera.top = window.innerHeight / proportion;   // Top
+				camera.bottom = window.innerHeight / -proportion;
 
 				}
 
@@ -385,8 +390,6 @@
 
 			}
 
-			//
-
 			function animate() {
 
 				requestAnimationFrame( animate );
@@ -396,21 +399,7 @@
 
 			}
 
-			function changePosition () {
-				for (var i = Things.length - 1; i >= 0; i--) {
-					Things[i]
-				};
-			}
-
 			function render() {
-
-
-
-				// var timer = 0.9;//Date.now() * 0.0001;
-
-				// camera.position.x = 150;
-				// camera.position.z = 150;
-				// camera.lookAt( scene.position );
 
 				renderer.render( scene, camera );
 
