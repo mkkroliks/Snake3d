@@ -27,24 +27,26 @@
 			var container, stats;
 			var camera, scene, renderer;
 			var setTime;
-			var fruits = [];
 			var time = 100;
 			var speedUp;
-			var grass;
 			var proportion = 1.9;
-			var importedModel;
-			var apple;
+			var fruits = [];
+			var palms = [];
+
+
+			var PLANE = new THREE.Mesh(new THREE.PlaneGeometry(50,50), new THREE.MeshPhongMaterial( { map: THREE.ImageUtils.loadTexture('desert.jpg') } ));
+			var APPLE,
+				PALM,									
+				SNAKE_HEAD,
+				SNAKE_BODY,
+				SNAKE_TAIL;
 
 			var board = {
 				size: 500,
 				step: 50
 			};
 
-			var planeArray = new Array();			//NOWE
-
-			var CubeGeometry, CubeMaterial;
-
-			var direction = new String();
+			var direction = [];
 			var snake = [];
 
 			init();
@@ -69,42 +71,20 @@
 				scene = new THREE.Scene();
 
 				// Board
-
 				for ( var i = - board.size; i <= board.size; i += board.step ) {
 
 					for ( var j = - board.size; j <= board.size; j += board.step ) {
 
-						plane = new THREE.Mesh(new THREE.PlaneGeometry(50,50), new THREE.MeshPhongMaterial( { map: THREE.ImageUtils.loadTexture('desert.jpg') } ));
+						var plane = PLANE.clone();
 						plane.rotation.x = -Math.PI/2; //-90 degrees around the xaxis 
 						plane.position.z = i;
 						plane.position.x = j;
+						plane.receiveShadow = true;
 		      			scene.add(plane);
-
-		      			planeArray.push(plane);				//dodajemy każdy element planszy do tablicy by później na każdym elemencie robic castShadow
 
 					}
 
 				}
-
-
-				CubeGeometry = new THREE.BoxGeometry( 50, 50, 50 ); //tworzymy nowÄ geometrie ktÃ³rÄ jest pudÅo i ustawiamy jej wielkoÅÄ
-				CubeMaterial = new THREE.MeshLambertMaterial( { map: THREE.ImageUtils.loadTexture('lime-snake-texture-seamless-3184351.jpg') } );
-
-				cube = new THREE.Mesh(CubeGeometry, CubeMaterial);
-			    cube.position.y = ( cube.scale.y * 50 ) / 2;
-			    cube.position.x = board.size;
-				cube.position.z = board.size;
-			    scene.add(cube);
-
-
-				
-				direction = "left";									//wyznaczamy poczatkowy kierunek snake'a
-
-				snake.unshift(cube);								//dodajemy cuba na początek tablicy
-
-				scene.add( cube );
-
-				
 				// Lights
 				// add subtle ambient lighting - affect all object in scene
 			    scene.add( new THREE.AmbientLight( 0x212223) );
@@ -123,19 +103,82 @@
 			    scene.add(directionalLight1);
 
 				var companion = new THREE.OBJMTLLoader();
-	            companion.load( 'models/apple/appleFinal1.obj', 'models/apple/appleFinal1.mtl', function ( object ) {
-	            	apple = object;
-	                apple.position.y = 15;	              
-	                apple.scale.set( 1.5,1.5,1.5 );
-	                apple.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
 
-	                addFruit();	//
+	            companion.load( 'models/snake/snakeHead.obj', 'models/snake/snakeHead.mtl', function ( object ) {
+	            	SNAKE_HEAD = object;
+	                SNAKE_HEAD.position.y = 15;	              
+	                SNAKE_HEAD.scale.set( 25,25,25 );
+	                SNAKE_HEAD.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
+
+			    	var snakeHead = SNAKE_HEAD.clone();
+
+			    	snakeHead.position.x = board.size-100;
+					snakeHead.position.z = board.size;
+					snakeHead.rotation.y = 0;
+
+					direction.push("left");									//wyznaczamy poczatkowy kierunek snake'a
+					snake.unshift(snakeHead);							//dodajemy glowe snake'a na początek tablicy
+
+	                scene.add(snakeHead);
+
+	            });
+
+	            companion.load( 'models/snake/snakeBody.obj', 'models/snake/snakeBody.mtl', function ( object ) {
+	            	SNAKE_BODY = object;
+	                SNAKE_BODY.position.y = 15;	              
+	                SNAKE_BODY.scale.set( 25,25,25 );
+	                SNAKE_BODY.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
+
+			    	var snakeBody = SNAKE_BODY.clone();
+
+			    	snakeBody.position.x = board.size-50;
+					snakeBody.position.z = board.size;
+			
+					snake.push(snakeBody);							
+
+	                scene.add(snakeBody);
+
+	            });
+
+	            companion.load( 'models/snake/snakeTail.obj', 'models/snake/snakeTail.mtl', function ( object ) {
+	            	SNAKE_TAIL = object;
+	                SNAKE_TAIL.position.y = 15;	              
+	                SNAKE_TAIL.scale.set( 25,25,25 );
+	                SNAKE_TAIL.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
+
+	                var snakeTail = SNAKE_TAIL.clone();
+			    	snakeTail.position.x = board.size;
+					snakeTail.position.z = board.size;
+
+					snakeTail.rotation.y = 0;
+							//wyznaczamy poczatkowy kierunek snake'a
+					snake.push(snakeTail);								//dodajemy cuba na początek tablicy
+
+	                scene.add(snakeTail);
+
+	            });
+
+	            companion.load( 'models/palm/palm.obj', 'models/palm/palm.mtl', function ( object ) {
+	            	PALM = object;
+	            	PALM.scale.set( 25,25,25 );
+	            	PALM.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
+
+	                randomPalms();
+
+	            });
+
+	             companion.load( 'models/apple/appleFinal1.obj', 'models/apple/appleFinal1.mtl', function ( object ) {
+	            	APPLE = object;
+	                APPLE.position.y = 15;	              
+	                APPLE.scale.set( 1.5,1.5,1.5 );
+	                APPLE.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
+
+	                addFruit();	
 
 	                setTime = setInterval(move, time);
 
 	            });
-
-				// renderer = new THREE.WebGLRenderer({ antialias: true});					//TODO
+ 
 				renderer = new THREE.WebGLRenderer();
 				renderer.setClearColor( 0xf0f0f0 );										//nasz background
 				renderer.setSize( window.innerWidth, window.innerHeight );
@@ -164,13 +207,6 @@
 
 			    directionalLight.castShadow = true;
 			    directionalLight1.castShadow = true;
-			    cube.castShadow = true;
-			    // importedModel.castShadow = true;
-
-
-			    for (var i = planeArray.length - 1; i >= 0; i--) {
-			   		planeArray[i].receiveShadow = true;
-			    };
 
 			    directionalLight.target.position.set(50, 15, -50);
 
@@ -187,9 +223,25 @@
 
 			var eatenFruits = 0;
 
+			function randomPalms(){
+				var posZ = -400;
+				for (var i = 0; i < 6; i++) {
+					var palm = PALM.clone(); //sprawdzic a addFruit czy nie jest palma na miejscu
+					palm.position.x = Math.floor(Math.random()*10 + 1) * 50 * (Math.random() >= 0.5 ? 1 : -1);
+					palm.position.z = posZ;
+
+					posZ += 150;
+
+					scene.add(palm);
+
+					palms.push(palm);
+
+				};
+			}
+
 			function addFruit() {
 				do {
-					var fruit = apple;
+					var fruit = APPLE; //tutaj nie musimy klonować, ponieważ tylko jedno jabłko będzie w jednym czasie na mapie
 					fruit.position.x = Math.floor(Math.random()*10 + 1) * 50 * (Math.random() >= 0.5 ? 1 : -1);
 					fruit.position.z = Math.floor(Math.random()*10 + 1) * 50 * (Math.random() >= 0.5 ? 1 : -1);
 				} while(isCollission(fruit))
@@ -209,9 +261,22 @@
 				return false;
 			}
 
+			function isPalmHit(posX, posZ) {
+
+				for (var i = palms.length - 1; i >= 0; i--) { 
+					if(palms[i].position.x == posX && palms[i].position.z == posZ) 
+						return true;
+				};
+				return false;
+			}
+			//sprawdzanie czy nie wylosowano owocu na snake'u lub czy nie wysolowano owocu w miejsce palmy
 			function isCollission(fruit) {
 				for (var i = snake.length - 1; i >= 0; i--) {													
 					if(snake[i].position.x == fruit.position.x && snake[i].position.z == fruit.position.z) 
+						return true;
+				};
+				for (var i = palms.length - 1; i >= 0; i--) {
+					if(palms[i].position.x == fruit.position.x && palms[i].position.z == fruit.position.z)
 						return true;
 				};
 				return false;
@@ -222,7 +287,27 @@
 				var newPosX = snake[0].position.x,
 					newPosZ = snake[0].position.z;
 
-				switch(direction) {
+				var rotation = 0;
+
+				//ZDEJMUJE LUB NIE (jesli jest tylko jeden element w tablicy) KIERUNEK Z TABLICY	
+					
+				if(direction.length > 1) {
+					//sprawdzamy w ktora strone obrocic glowe snake'a
+					if( (direction[0] == "left" && direction[1] == "up") || 
+						(direction[0] == "up" && direction[1] == "right") ||
+						(direction[0] == "right" && direction[1] == "down") ||
+						(direction[0] == "down" && direction[1] == "left")
+					)
+	
+						rotation = -90;
+					else {
+						rotation = 90;
+					}
+
+					direction.shift();		//zdejmujemy poczatkowy element z tablicy
+				}
+
+				switch(direction[0]) {
 					case "left":
 						 newPosX = snake[0].position.x - 50;
 						break;
@@ -236,9 +321,8 @@
 						 newPosZ = snake[0].position.z + 50;
 				}
 
-				checkCollission(newPosX, newPosZ);
+				checkCollission(newPosX, newPosZ, rotation);
 
-				
 				if(speedUp) {
 					clearInterval(setTime);
 					setTime = setInterval(move, time <= 100 ? 100 : time-=50);
@@ -293,7 +377,7 @@
 
 				}
 
-			function checkCollission(posX, posZ) {
+			function checkCollission(posX, posZ, rotation) {
 
 				var eaten = false;
 				speedUp = false;
@@ -301,7 +385,7 @@
 				if(posX > board.size || posZ < -board.size || posX < -board.size || posZ > board.size ) { //Sprawdzanie czy nie wyjechał za koniec planszy
 					clearInterval(setTime);
 					console.log(snake[0].position.x, snake[0].position.z);
-				} else if (snake.length > 1 && isTailEaten(posX, posZ)) {													  //sprawdzenie czy nie zjadl ogona
+				} else if ( (snake.length > 1 && isTailEaten(posX, posZ)) || isPalmHit(posX,posZ)) {													  //sprawdzenie czy nie zjadl ogona lub nie najechaj na palme
 					clearInterval(setTime);
 				} else {																				  //sprawdzenie czy nie zjadl owocu
 					for (var i = fruits.length - 1; i >= 0; i--) {
@@ -316,39 +400,82 @@
 							scene.remove(fruits[i]);
 
 							fruits.splice(fruits.indexOf(fruits[i]), 1); //usuwamy zjedzony owoc z tablicy
+
 							
-							var cube = new THREE.Mesh ( CubeGeometry, CubeMaterial );
-							cube.position.x = snake[snake.length-1].position.x;
-							cube.position.z = snake[snake.length-1].position.z;
-							cube.position.y = ( cube.scale.y * 50 ) / 2;
+							var snakeBody = SNAKE_BODY.clone();
 
-							scene.add(cube);
-							snake.push(cube);
+					    	snakeBody.position.x = snake[snake.length-2].position.x; //nowy element bedzie dodawany przed ogonem
+							snakeBody.position.z = snake[snake.length-2].position.z;
+				
+							//nowy element bedzie dodawany przed ogonem
+							snake.splice(snake.length-2, 0, snakeBody);				
 
-							cube.castShadow = true;
+			                scene.add(snakeBody);
 
-							addFruit();
+			                addFruit();
 
 							break;
 						}
 					};
 
-					for (var i = snake.length - 1; i >= 0; i--) {
-						if(i===0) {
-							snake[0].position.x = posX;
-							snake[0].position.z = posZ;
-						} else {
-							if(eaten) {
-								eaten = false;
-							} else {
-								snake[i].position.x = snake[i-1].position.x;
-								snake[i].position.z = snake[i-1].position.z;
-							}
-							
-						}
-						
-					};
+					if(eaten) {
+						//poniewaz ogon nie ruszy sie z miejsca wiec tez nie bedziemy robic rotacji
+						for (var i = snake.length - 2; i > 0; i--) {
+							snake[i].position.x = snake[i-1].position.x;
+							snake[i].position.z = snake[i-1].position.z;
+						};
+					} else {
+						//beforeLastElementBeforeChangingPosition
+						var BLEBCP = snake[snake.length - 2].clone();
+						for (var i = snake.length - 2; i > 0; i--) {
+							snake[i].position.x = snake[i-1].position.x;
+							snake[i].position.z = snake[i-1].position.z;
+						};
+						var tail = snake[snake.length - 1];
+						var elementBeforeTail = snake[snake.length - 2];
 
+					
+						if(tail.position.x - 50 == elementBeforeTail.position.x &&
+						   tail.position.z - 50 == elementBeforeTail.position.z) {
+							if(elementBeforeTail.position.z - BLEBCP.position.z == 0 ) {
+								snake[snake.length-1].rotation.y += 90 * Math.PI / 180;
+							} else {
+								snake[snake.length-1].rotation.y += -90 * Math.PI / 180;
+							}
+						} else if (tail.position.x + 50 == elementBeforeTail.position.x &&
+						    	   tail.position.z - 50 == elementBeforeTail.position.z)
+					    {
+					    	if(elementBeforeTail.position.z - BLEBCP.position.z == 0 ) {
+					    		snake[snake.length-1].rotation.y += -90 * Math.PI / 180;
+					    	} else {
+					    		snake[snake.length-1].rotation.y += 90 * Math.PI / 180;
+					    	}
+						} else if (tail.position.x + 50 == elementBeforeTail.position.x &&
+						           tail.position.z + 50 == elementBeforeTail.position.z)
+						{
+							if(elementBeforeTail.position.z - BLEBCP.position.z == 0 ) {
+					    		snake[snake.length-1].rotation.y += 90 * Math.PI / 180;
+					    	} else {
+					    		snake[snake.length-1].rotation.y += -90 * Math.PI / 180;
+					    	}
+						} else if (tail.position.x - 50 == elementBeforeTail.position.x &&
+						    	   tail.position.z + 50 == elementBeforeTail.position.z)
+						{
+							if(elementBeforeTail.position.z - BLEBCP.position.z == 0 ) {
+					    		snake[snake.length-1].rotation.y += -90 * Math.PI / 180;
+					    	} else {
+					    		snake[snake.length-1].rotation.y += +90 * Math.PI / 180;
+					    	}
+						}
+
+						snake[snake.length - 1].position.x = BLEBCP.position.x;
+						snake[snake.length - 1].position.z = BLEBCP.position.z;
+					}
+
+					snake[0].position.x = posX;
+					snake[0].position.z = posZ;
+
+					snake[0].rotation.y += rotation * Math.PI / 180;
 					
 				}
 
@@ -358,20 +485,20 @@
 			function changeDir (e) {
 				switch(e.keyCode) {
 					case 37:
-						if(direction != "right")
-							direction = "left";
+						if(direction[direction.length-1] != "right" && direction[direction.length-1] != "left")
+							direction.push("left");
 						break;
 					case 38:
-						if(direction != "down")
-							direction = "up";
+						if(direction[direction.length-1] != "down" && direction[direction.length-1] != "up")
+							direction.push("up");
 						break;
 					case 39:
-						if(direction != "left")
-							direction = "right";
+						if(direction[direction.length-1] != "left" && direction[direction.length-1] != "right")
+							direction.push("right");
 						break;
 					case 40:
-						if(direction != "up")
-							direction = "down";
+						if(direction[direction.length-1] != "up" && direction[direction.length-1] != "down")
+							direction.push("down");
 				}
 			}
 
